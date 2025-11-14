@@ -1,0 +1,41 @@
+name: CI/CD Pipeline
+ 
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+ 
+env:
+  REGISTRY: ${{ secrets.REGISTRY }}  # ejemplo: pettrackregistry.azurecr.io
+  IMAGE_NAME: veterinary-app
+  TAG: latest
+  APP_NAME: veterinary-app
+  COMPOSE_FILE: docker-compose.yml
+ 
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+ 
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+ 
+    - name: Azure login
+      uses: azure/login@v1
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+ 
+    - name: Docker login to ACR
+      uses: azure/docker-login@v1
+      with:
+        login-server: ${{ secrets.REGISTRY }}
+        username: ${{ secrets.REGISTRY_USERNAME }}
+        password: ${{ secrets.REGISTRY_PASSWORD }}
+ 
+    - name: Build Docker images
+      run: docker compose -f $COMPOSE_FILE build
+ 
+    - name: Push Docker images to Azure Container Registry
+      run: docker compose -f $COMPOSE_FILE push

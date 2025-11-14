@@ -1,0 +1,92 @@
+version: "3.9"
+
+services:
+  # === AUTH SERVICE ===
+  auth-service:
+    build: ./services/auth-service
+    container_name: auth_service
+    env_file:
+      - ./services/auth-service/.env
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./services/auth-service:/app
+      - ./certs/BaltimoreCyberTrustRoot.pem:/etc/ssl/certs/BaltimoreCyberTrustRoot.pem:ro
+    restart: always
+    networks:
+      - backend
+
+  # === PETS SERVICE ===
+  pets-service:
+    build: ./services/pets-service
+    container_name: pets_service
+    env_file:
+      - ./services/pets-service/.env
+    ports:
+      - "8001:8000"
+    volumes:
+      - ./services/pets-service:/app
+      - ./certs/BaltimoreCyberTrustRoot.pem:/etc/ssl/certs/BaltimoreCyberTrustRoot.pem:ro
+    restart: always
+    networks:
+      - backend
+
+  # === APPOINTMENTS SERVICE ===
+  appointment-service:
+    build: ./services/appointment-service
+    container_name: appointment_service
+    env_file:
+      - ./services/appointment-service/.env
+    ports:
+      - "8002:8000"
+    volumes:
+      - ./services/appointment-service:/app
+      - ./certs/BaltimoreCyberTrustRoot.pem:/etc/ssl/certs/BaltimoreCyberTrustRoot.pem:ro
+    restart: always
+    networks:
+      - backend
+
+  # === API GATEWAY ===
+  api-gateway:
+    build: ./services/api-gateway
+    container_name: api_gateway
+    ports:
+      - "8003:8003"
+    env_file:
+      - ./services/api-gateway/.env
+    environment:
+      AUTH_SERVICE_URL: "http://auth-service:8000"
+      PETS_SERVICE_URL: "http://pets-service:8001"
+      APPOINTMENTS_SERVICE_URL: "http://appointment-service:8002"
+    depends_on:
+      - auth-service
+      - pets-service
+      - appointment-service
+    restart: always
+    networks:
+      - backend
+
+  # === WEB CLIENT (React con Nginx) ===
+  client:
+    build: ./clients/web-client
+    container_name: web_client
+    ports:
+      - "80:80"   # ✅ producción estable
+    depends_on:
+      - api-gateway
+    environment:
+      VITE_API_GATEWAY: "http://api-gateway:8003"
+    restart: always
+    networks:
+      - backend
+
+# === NETWORKS ===
+networks:
+  backend:
+    driver: bridge
+
+# === VOLUMES ===
+volumes:
+  auth_data:
+  pets_data:
+  appointments_data:
