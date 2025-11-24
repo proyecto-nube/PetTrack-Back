@@ -4,6 +4,7 @@ from fastapi.security import OAuth2PasswordBearer
 from passlib.context import CryptContext
 from datetime import datetime, timedelta
 import jwt
+import os
 from typing import List
 
 from . import models, schemas
@@ -164,3 +165,12 @@ def update_user(
     db.commit()
     db.refresh(user)
     return user
+
+@app.on_event("startup")
+def startup_event():
+    port = int(os.getenv("PORT", 8000))
+    app_name = os.getenv("APP_NAME")
+    auth_api_url = os.getenv("AUTH_API_URL")
+    print(f"✅ {app_name} listening on http://localhost:{port}")
+    print(f"Auth Service is running. API URL: {auth_api_url}")
+    print("Ready to handle authentication requests.")
