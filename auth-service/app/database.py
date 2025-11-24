@@ -3,23 +3,21 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 import os
 
-# Cargar variables desde .env
-DATABASE_URL = os.getenv("DATABASE_URL")
-SSL_CA = os.getenv("DB_SSL_CA")
+DB_HOST = os.getenv("DB_HOST")
+DB_NAME = os.getenv("DB_NAME")  # cambia por cada microservicio
+DB_USER = os.getenv("DB_USER")
+DB_PASSWORD = os.getenv("DB_PASSWORD")
+SSL_CA = os.path.join(os.path.dirname(__file__), "../DigiCertGlobalRootG2.pem")
 
-# Forzar SSL si no estaba incluido
-if "ssl_ca" not in DATABASE_URL:
-    DATABASE_URL += f"?ssl_ca={SSL_CA}&ssl_verify_cert=true"
-
-# Crear engine con configuraciones necesarias para Azure
-engine = create_engine(
-    DATABASE_URL,
-    pool_pre_ping=True,
-    pool_recycle=280,
+DATABASE_URL = (
+    f"mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:3306/{DB_NAME}"
+    f"?ssl_ca={SSL_CA}&ssl_verify_cert=true"
 )
 
+engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
+
 
 def get_db():
     db = SessionLocal()
