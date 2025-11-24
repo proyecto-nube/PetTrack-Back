@@ -3,10 +3,15 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 import os
 
-# Tomar DATABASE_URL directamente desde .env
+# Cargar variables desde .env
 DATABASE_URL = os.getenv("DATABASE_URL")
+SSL_CA = os.getenv("DB_SSL_CA")
 
-# Crear engine
+# Forzar SSL si no estaba incluido
+if "ssl_ca" not in DATABASE_URL:
+    DATABASE_URL += f"?ssl_ca={SSL_CA}&ssl_verify_cert=true"
+
+# Crear engine con configuraciones necesarias para Azure
 engine = create_engine(
     DATABASE_URL,
     pool_pre_ping=True,

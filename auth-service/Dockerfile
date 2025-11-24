@@ -14,7 +14,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-COPY ./BaltimoreCyberTrustRoot.pem /app/BaltimoreCyberTrustRoot.pem
 ENV SSL_CERT_FILE=/app/BaltimoreCyberTrustRoot.pem
 
 # Comando para arrancar la app
