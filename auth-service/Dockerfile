@@ -1,21 +1,24 @@
 FROM python:3.11-slim
 
+# Crear carpeta de trabajo
 WORKDIR /app
 
-RUN apt-get update && \
-    apt-get install -y build-essential libssl-dev libffi-dev && \
-    rm -rf /var/lib/apt/lists/*
-
+# Copiar requirements primero
 COPY requirements.txt .
+
+# Instalar dependencias
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Copiar la app completa
 COPY . .
 
-# Copiar certificados correctos desde /certs dentro del servicio
-COPY certs/BaltimoreCyberTrustRoot.crt.pem /etc/ssl/certs/BaltimoreCyberTrustRoot.pem
-COPY certs/DigiCertGlobalRootCA.crt.pem /etc/ssl/certs/DigiCertGlobalRootCA.pem
+# Crear carpeta de certificados dentro de la imagen
+RUN mkdir -p /app/certs
 
-# Variable SSL para que Python use los certificados
-ENV SSL_CERT_FILE=/etc/ssl/certs/BaltimoreCyberTrustRoot.pem
+# Copiar certificados desde tu repo
+COPY certs /app/certs
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Permisos opcionales (si es necesario)
+RUN chmod -R 644 /app/certs
+
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
