@@ -14,7 +14,6 @@ COPY . .
 # Copiar certificados correctos desde /certs dentro del servicio
 COPY certs/BaltimoreCyberTrustRoot.crt.pem /etc/ssl/certs/BaltimoreCyberTrustRoot.pem
 COPY certs/DigiCertGlobalRootCA.crt.pem /etc/ssl/certs/DigiCertGlobalRootCA.pem
-COPY certs/DigiCertGlobalRootG2.crt.pem /etc/ssl/certs/DigiCertGlobalRootG2.pem
 
 # Variable SSL para que Python use los certificados
 ENV SSL_CERT_FILE=/etc/ssl/certs/BaltimoreCyberTrustRoot.pem
