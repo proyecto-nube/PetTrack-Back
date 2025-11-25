@@ -166,6 +166,11 @@ def update_user(
     db.refresh(user)
     return user
 
+@app.get("/health")
+def health():
+    return {"status": "Auth service is healthy"}
+
+
 @app.on_event("startup")
 def startup_event():
     print("Auth service started correctly inside Azure Container")
