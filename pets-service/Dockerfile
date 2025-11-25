@@ -9,18 +9,8 @@ RUN apt-get update && \
 
 COPY requirements.txt .
 
-# Instalar dependencias Python
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copiar código
 COPY . .
 
-# Copiar certificado dentro de la imagen
-COPY certs/BaltimoreCyberTrustRoot.pem /etc/ssl/certs/BaltimoreCyberTrustRoot.pem
-
-# Variables SSL para Python
-ENV SSL_CERT_FILE=/etc/ssl/certs/BaltimoreCyberTrustRoot.pem
-ENV REQUESTS_CA_BUNDLE=/etc/ssl/certs/BaltimoreCyberTrustRoot.pem
-
-# Iniciar FastAPI con Uvicorn
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
