@@ -170,6 +170,10 @@ def update_user(
 def health():
     return {"status": "Auth service is healthy"}
 
+@app.get("/")
+def root():
+    return {"message": "Welcome to the Auth Service"}
+
 
 @app.on_event("startup")
 def startup_event():
