@@ -8,7 +8,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
+EXPOSE 8000
+
 ENV PORT=8000
 
-# Usar ENTRYPOINT para ejecutar el servidor con la variable de entorno PORT
-ENTRYPOINT ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port $PORT"]
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", ${PORT}]
