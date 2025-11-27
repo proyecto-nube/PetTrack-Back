@@ -9,7 +9,7 @@ from typing import List
 
 from . import models, schemas
 from .database import Base, engine, get_db
-from .config import SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES
+from .config import SECRET_KEY, SECRET_KEY_BASE64, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES
 
 Base.metadata.create_all(bind=engine)
 app = FastAPI(title="Auth Service")
@@ -26,6 +26,7 @@ def create_access_token(data: dict, expires_delta: timedelta):
 
 def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     try:
+        # Usar la clave normal aquí
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         email = payload.get("sub")
         if email is None:
@@ -38,6 +39,7 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token expirado")
     except jwt.JWTError:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token inválido")
+
 
 # --- Decorador de roles ---
 def role_required(allowed_roles: List[str]):
