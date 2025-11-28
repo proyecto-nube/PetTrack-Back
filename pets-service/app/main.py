@@ -55,16 +55,20 @@ def delete_pet(pet_id: int, user=Depends(get_user), db: Session = Depends(get_db
     return {"detail": "Mascota eliminada"}
 
 @app.get("/health")
-def health_check():
-    try:
-        # Test database connection
-        db = SessionLocal()
-        db.execute(db.text("SELECT 1"))
-        db.close()
-        return {"status": "ok", "database": "connected"}
-    except Exception as e:
-        return {"status": "error", "database": str(e)}
+def health():
+    return {"status": "Pets service is healthy"}
 
 @app.get("/")
-def read_root():
-    return {"message": "Welcome to the Pets Service!"}
+def root():
+    return {"message": "Welcome to the Pets Service"}
+
+
+@app.on_event("startup")
+def startup_event():
+    print("Pets service started correctly inside Azure Container")
+
+
+if __name__ == "__main__":
+    import uvicorn
+    port = int(os.environ.get("PORT", 8000))  # Azure define PORT automáticamente
+    uvicorn.run(app, host="0.0.0.0", port=port)
