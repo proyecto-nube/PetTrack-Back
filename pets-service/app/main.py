@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI, Depends, HTTPException
 from sqlalchemy.orm import Session
 from . import models, schemas
 from .database import Base, engine, get_db
@@ -33,3 +33,23 @@ def create_pet(pet: schemas.PetBase, user=Depends(get_user), db: Session = Depen
 @app.get("/pets", response_model=list[schemas.PetResponse])
 def list_pets(user=Depends(get_user), db: Session = Depends(get_db)):
     return db.query(models.Pet).filter(models.Pet.owner_id == user["id"]).all()
+
+@app.put("/pets/{pet_id}", response_model=schemas.PetResponse)
+def update_pet(pet_id: int, pet: schemas.PetBase, user=Depends(get_user), db: Session = Depends(get_db)):
+    db_pet = db.query(models.Pet).filter(models.Pet.id == pet_id, models.Pet.owner_id == user["id"]).first()
+    if not db_pet:
+        raise HTTPException(status_code=404, detail="Mascota no encontrada")
+    for key, value in pet.dict().items():
+        setattr(db_pet, key, value)
+    db.commit()
+    db.refresh(db_pet)
+    return db_pet
+
+@app.delete("/pets/{pet_id}")
+def delete_pet(pet_id: int, user=Depends(get_user), db: Session = Depends(get_db)):
+    db_pet = db.query(models.Pet).filter(models.Pet.id == pet_id, models.Pet.owner_id == user["id"]).first()
+    if not db_pet:
+        raise HTTPException(status_code=404, detail="Mascota no encontrada")
+    db.delete(db_pet)
+    db.commit()
+    return {"detail": "Mascota eliminada"}
