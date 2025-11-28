@@ -1,16 +1,19 @@
 FROM python:3.11-slim
 
+ENV PYTHONUNBUFFERED=1
+ENV PORT=8001
+
 WORKDIR /app
 
-# Dependencias del sistema
-RUN apt-get update && \
-    apt-get install -y build-essential libssl-dev libffi-dev && \
-    rm -rf /var/lib/apt/lists/*
-
+# Copiar e instalar dependencias
 COPY requirements.txt .
-
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Copiar código del servicio
 COPY . .
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Exponer puerto
+EXPOSE 8000
+
+# Iniciar app correctamente apuntando al main que sí existe
+CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port $PORT"]
