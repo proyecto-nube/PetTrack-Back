@@ -1,6 +1,7 @@
 from fastapi import FastAPI, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from fastapi.security import OAuth2PasswordBearer
+from fastapi.responses import JSONResponse
 from passlib.context import CryptContext
 from datetime import datetime, timedelta
 import jwt
@@ -83,14 +84,22 @@ def login(credentials: schemas.UserLogin, db: Session = Depends(get_db)):
         data={"sub": user.email, "role": user.role},
         expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     )
-    return {
-        "access_token": access_token,
-        "token_type": "bearer",
+
+    response = JSONResponse(content={
         "user_id": user.id,
         "username": user.username,
         "email": user.email,
         "role": user.role
-    }
+    })
+    response.set_cookie(
+        key="access_token",
+        value=access_token,
+        httponly=True,
+        secure=True,  # solo si usas HTTPS
+        samesite="None",  # para cross-origin
+        max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60
+    )
+    return response
 
 @app.get("/profile", response_model=schemas.UserResponse)
 def get_profile(current_user: models.User = Depends(get_current_user)):
