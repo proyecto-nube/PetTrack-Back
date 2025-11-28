@@ -8,6 +8,11 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 if not DATABASE_URL:
     raise ValueError("DATABASE_URL environment variable not set")
 
+# Azure MySQL requiere SSL - agregar parámetros SSL si no están presentes
+if "ssl" not in DATABASE_URL.lower():
+    separator = "&" if "?" in DATABASE_URL else "?"
+    DATABASE_URL = f"{DATABASE_URL}{separator}ssl_disabled=false"
+
 # Crear engine
 engine = create_engine(
     DATABASE_URL,

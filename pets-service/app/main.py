@@ -66,6 +66,8 @@ def root():
 @app.on_event("startup")
 def startup_event():
     print("Pets service started correctly inside Azure Container")
+    print(f"DATABASE_URL configured: {'Yes' if os.getenv('DATABASE_URL') else 'No'}")
+    print(f"AUTH_SERVICE_URL configured: {'Yes' if os.getenv('AUTH_SERVICE_URL') else 'No'}")
 
 
 if __name__ == "__main__":
