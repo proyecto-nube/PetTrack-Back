@@ -53,3 +53,11 @@ def delete_pet(pet_id: int, user=Depends(get_user), db: Session = Depends(get_db
     db.delete(db_pet)
     db.commit()
     return {"detail": "Mascota eliminada"}
+
+@app.get("/health")
+def health_check():
+    return {"status": "ok"}
+
+@app.get("/")
+def read_root():
+    return {"message": "Welcome to the Pets Service!"}
