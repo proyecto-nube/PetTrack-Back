@@ -5,6 +5,7 @@ class PetBase(BaseModel):
     species: str
     breed: str
     owner_name: str
+    owner_id: int
 
 class PetResponse(PetBase):
     id: int
