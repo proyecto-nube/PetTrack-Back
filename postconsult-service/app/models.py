@@ -1,22 +1,23 @@
-from sqlalchemy import Column, Integer, Text, DateTime, Enum
-from app.database import Base
 from datetime import datetime
-import enum
+from sqlalchemy import Column, DateTime, Integer, String, Text
 
-class EstadoConsulta(str, enum.Enum):
-    pendiente = "pendiente"
-    completada = "completada"
-    cancelada = "cancelada"
+from .database import Base
 
-class PostConsulta(Base):
-    __tablename__ = "postconsultas"
+
+class PostConsultFollowUp(Base):
+    __tablename__ = "vet_postconsultas"
 
     id = Column(Integer, primary_key=True, index=True)
-    mascota_id = Column(Integer, index=True, nullable=False)
-    veterinario_id = Column(Integer, index=True, nullable=False)
-    fecha_consulta = Column(DateTime, default=datetime.utcnow)
-    diagnostico = Column(Text, nullable=False)
-    tratamiento = Column(Text, nullable=True)
-    observaciones = Column(Text, nullable=True)
-    proxima_cita = Column(DateTime, nullable=True)
-    estado = Column(Enum(EstadoConsulta), default=EstadoConsulta.pendiente)
+    pet_name = Column(String(120), nullable=False)
+    owner_name = Column(String(120), nullable=False)
+    type = Column(String(160), nullable=False)
+    date = Column(String(20), nullable=False)
+    time = Column(String(20), nullable=False)
+    status = Column(String(40), nullable=False, default="Pendiente")
+    notes = Column(Text, nullable=True)
+    points_on_complete = Column(Integer, nullable=False, default=50)
+    owner_id = Column(String(64), nullable=True, index=True)
+    created_by = Column(String(64), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, nullable=True)
+
