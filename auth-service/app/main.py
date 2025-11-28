@@ -1,7 +1,6 @@
-from fastapi import FastAPI, Depends, HTTPException, status
-from sqlalchemy.orm import Session
-from fastapi.security import OAuth2PasswordBearer
+from fastapi import FastAPI, Depends, HTTPException, status, Cookie
 from fastapi.responses import JSONResponse
+from sqlalchemy.orm import Session
 from passlib.context import CryptContext
 from datetime import datetime, timedelta
 import jwt
@@ -10,12 +9,11 @@ from typing import List
 
 from . import models, schemas
 from .database import Base, engine, get_db
-from .config import SECRET_KEY, SECRET_KEY_BASE64, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES
+from .config import SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES
 
 Base.metadata.create_all(bind=engine)
 app = FastAPI(title="Auth Service")
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/login")
 
 # --- Funciones de seguridad ---
 def create_access_token(data: dict, expires_delta: timedelta):
@@ -25,10 +23,11 @@ def create_access_token(data: dict, expires_delta: timedelta):
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
-def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+def get_current_user(access_token: str = Cookie(None), db: Session = Depends(get_db)):
+    if not access_token:
+        raise HTTPException(status_code=401, detail="Token no encontrado en cookie")
     try:
-        # Usar la clave normal aquí
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        payload = jwt.decode(access_token, SECRET_KEY, algorithms=[ALGORITHM])
         email = payload.get("sub")
         if email is None:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token inválido")
@@ -41,8 +40,6 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
     except jwt.JWTError:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token inválido")
 
-
-# --- Decorador de roles ---
 def role_required(allowed_roles: List[str]):
     def wrapper(user: models.User = Depends(get_current_user)):
         if user.role not in allowed_roles:
@@ -55,10 +52,8 @@ def role_required(allowed_roles: List[str]):
 def register(user: schemas.UserCreate, db: Session = Depends(get_db)):
     if db.query(models.User).filter(models.User.email == user.email).first():
         raise HTTPException(status_code=400, detail="El email ya está en uso")
-    
     if user.role not in ["user", "doctor", "admin"]:
         raise HTTPException(status_code=400, detail="Rol no válido")
-    
     if len(user.password) > 72:
         raise HTTPException(status_code=400, detail="La contraseña no puede superar 72 caracteres")
 
@@ -95,10 +90,16 @@ def login(credentials: schemas.UserLogin, db: Session = Depends(get_db)):
         key="access_token",
         value=access_token,
         httponly=True,
-        secure=True,  # solo si usas HTTPS
-        samesite="None",  # para cross-origin
+        secure=True,
+        samesite="None",
         max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60
     )
+    return response
+
+@app.post("/logout")
+def logout():
+    response = JSONResponse(content={"message": "Sesión cerrada correctamente"})
+    response.delete_cookie("access_token")
     return response
 
 @app.get("/profile", response_model=schemas.UserResponse)
@@ -107,62 +108,32 @@ def get_profile(current_user: models.User = Depends(get_current_user)):
 
 @app.get("/users", response_model=List[schemas.UserResponse])
 def list_users(current_user: models.User = Depends(role_required(["admin", "doctor"])), db: Session = Depends(get_db)):
-    users = db.query(models.User).all()
-    return users
+    return db.query(models.User).all()
 
-# ======================================
-# 🔹 Nuevo endpoint para dashboard por rol
-# ======================================
 @app.get("/dashboard/{role}")
 def dashboard(role: str, current_user: models.User = Depends(get_current_user)):
-    if role == "admin":
-        if current_user.role != "admin":
-            raise HTTPException(status_code=403, detail="Acceso restringido a administradores")
-        return {"message": f"Bienvenido al dashboard de administrador, {current_user.username}"}
-    
-    elif role == "doctor":
-        if current_user.role != "doctor":
-            raise HTTPException(status_code=403, detail="Acceso restringido a doctores")
-        return {"message": f"Bienvenido al dashboard de doctor, {current_user.username}"}
-    
-    elif role == "user":
-        if current_user.role != "user":
-            raise HTTPException(status_code=403, detail="Acceso denegado a este recurso")
-        return {"message": f"Bienvenido al dashboard de usuario, {current_user.username}"}
-    
-# ============================================================
-# 🔹 Eliminar usuario (solo admin)
-# ============================================================
+    if role == "admin" and current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Acceso restringido a administradores")
+    if role == "doctor" and current_user.role != "doctor":
+        raise HTTPException(status_code=403, detail="Acceso restringido a doctores")
+    if role == "user" and current_user.role != "user":
+        raise HTTPException(status_code=403, detail="Acceso denegado a este recurso")
+    return {"message": f"Bienvenido al dashboard de {role}, {current_user.username}"}
+
 @app.delete("/users/{user_id}", status_code=204)
-def delete_user(
-    user_id: int,
-    db: Session = Depends(get_db),
-    current_user: models.User = Depends(role_required(["admin"]))
-):
+def delete_user(user_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(role_required(["admin"]))):
     user = db.query(models.User).filter(models.User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
-
     db.delete(user)
     db.commit()
     return {"message": f"Usuario con ID {user_id} eliminado correctamente"}
 
-
-# ============================================================
-# 🔹 Editar usuario (solo admin)
-# ============================================================
 @app.put("/users/{user_id}", response_model=schemas.UserResponse)
-def update_user(
-    user_id: int,
-    updated_data: schemas.UserUpdate,  # debes crear este esquema en schemas.py
-    db: Session = Depends(get_db),
-    current_user: models.User = Depends(role_required(["admin"]))
-):
+def update_user(user_id: int, updated_data: schemas.UserUpdate, db: Session = Depends(get_db), current_user: models.User = Depends(role_required(["admin"]))):
     user = db.query(models.User).filter(models.User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
-
-    # Actualizar campos básicos (solo si vienen en la solicitud)
     if updated_data.username:
         user.username = updated_data.username
     if updated_data.email:
@@ -173,7 +144,6 @@ def update_user(
         user.role = updated_data.role
     if updated_data.password:
         user.hashed_password = pwd_context.hash(updated_data.password)
-
     db.commit()
     db.refresh(user)
     return user
@@ -186,13 +156,6 @@ def health():
 def root():
     return {"message": "Welcome to the Auth Service"}
 
-
 @app.on_event("startup")
 def startup_event():
     print("Auth service started correctly inside Azure Container")
-
-
-if __name__ == "__main__":
-    import uvicorn
-    port = int(os.environ.get("PORT", 8000))  # Azure define PORT automáticamente
-    uvicorn.run(app, host="0.0.0.0", port=port)
