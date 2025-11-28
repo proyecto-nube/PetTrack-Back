@@ -1,7 +1,7 @@
 from fastapi import FastAPI, Depends, HTTPException
 from sqlalchemy.orm import Session
 from . import models, schemas
-from .database import Base, engine, get_db
+from .database import Base, engine, get_db, SessionLocal
 from fastapi.security import OAuth2PasswordBearer
 import requests
 import os
@@ -56,7 +56,14 @@ def delete_pet(pet_id: int, user=Depends(get_user), db: Session = Depends(get_db
 
 @app.get("/health")
 def health_check():
-    return {"status": "ok"}
+    try:
+        # Test database connection
+        db = SessionLocal()
+        db.execute(db.text("SELECT 1"))
+        db.close()
+        return {"status": "ok", "database": "connected"}
+    except Exception as e:
+        return {"status": "error", "database": str(e)}
 
 @app.get("/")
 def read_root():
