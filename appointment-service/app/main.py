@@ -67,3 +67,12 @@ def read_root():
 @app.get("/health")
 def health_check():
     return {"status": "healthy"}
+
+@app.on_event("startup")
+def startup_event():
+    print("Appointment Service is starting up...")
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8002)
+    port = int(os.environ.get("PORT", 8002))  # Azure define PORT automáticamente
