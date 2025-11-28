@@ -7,6 +7,8 @@ from .config import (
     AUTH_SERVICE_URL,
     PETS_SERVICE_URL,
     APPOINTMENTS_SERVICE_URL,
+    REWARDS_SERVICE_URL,
+    POSTCONSULT_SERVICE_URL,
     SECRET_KEY,
     ALGORITHM,
 )
@@ -15,19 +17,24 @@ from .proxy import forward_request
 app = FastAPI(title="API Gateway")
 
 # ======================================
-# 🔹 Configurar CORS para acceso desde React local
+# 🔹 Configurar CORS para acceso desde React local y Azure
 # ======================================
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "http://localhost",        # producción
+        "http://localhost",        # desarrollo local
         "http://127.0.0.1",
         "http://localhost:5173",   # desarrollo (Vite)
         "http://127.0.0.1:5173",
+        "http://localhost:80",     # contenedor Docker
+        "http://localhost:80/",    # contenedor Docker con trailing slash
+        "https://pettrack-apim.azure-api.net",  # Azure API Management
+        "*",  # Permitir todos los orígenes (necesario para Azure)
     ],
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")

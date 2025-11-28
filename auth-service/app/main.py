@@ -136,7 +136,7 @@ def delete_user(
 
     db.delete(user)
     db.commit()
-    return {"message": f"Usuario con ID {user_id} eliminado correctamente"}
+    # Status 204 No Content - no se retorna ningún contenido
 
 
 # ============================================================
@@ -145,7 +145,7 @@ def delete_user(
 @app.put("/users/{user_id}", response_model=schemas.UserResponse)
 def update_user(
     user_id: int,
-    updated_data: schemas.UserUpdate,  # debes crear este esquema en schemas.py
+    updated_data: schemas.UserUpdate,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(role_required(["admin"]))
 ):
