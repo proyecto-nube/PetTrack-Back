@@ -32,3 +32,38 @@ def create_appointment(appo: schemas.AppointmentBase, user=Depends(get_user), db
 @app.get("/appointments", response_model=list[schemas.AppointmentResponse])
 def list_appointments(user=Depends(get_user), db: Session = Depends(get_db)):
     return db.query(models.Appointment).filter(models.Appointment.owner_id == user["id"]).all()
+
+@app.get("/appointments/{appointment_id}", response_model=schemas.AppointmentResponse)
+def get_appointment(appointment_id: int, user=Depends(get_user), db: Session = Depends(get_db)):
+    appo = db.query(models.Appointment).filter(models.Appointment.id == appointment_id, models.Appointment.owner_id == user["id"]).first()
+    if not appo:
+        raise HTTPException(status_code=404, detail="Appointment not found")
+    return appo
+
+@app.delete("/appointments/{appointment_id}")
+def delete_appointment(appointment_id: int, user=Depends(get_user), db: Session = Depends(get_db)):
+    appo = db.query(models.Appointment).filter(models.Appointment.id == appointment_id, models.Appointment.owner_id == user["id"]).first()
+    if not appo:
+        raise HTTPException(status_code=404, detail="Appointment not found")
+    db.delete(appo)
+    db.commit()
+    return {"detail": "Appointment deleted"}
+
+@app.put("/appointments/{appointment_id}", response_model=schemas.AppointmentResponse)
+def update_appointment(appointment_id: int, appo_update: schemas.AppointmentBase, user=Depends(get_user), db: Session = Depends(get_db)):
+    appo = db.query(models.Appointment).filter(models.Appointment.id == appointment_id, models.Appointment.owner_id == user["id"]).first()
+    if not appo:
+        raise HTTPException(status_code=404, detail="Appointment not found")
+    for key, value in appo_update.dict().items():
+        setattr(appo, key, value)
+    db.commit()
+    db.refresh(appo)
+    return appo
+
+@app.get("/")
+def read_root():
+    return {"message": "Welcome to the Appointments Service"}
+
+@app.get("/health")
+def health_check():
+    return {"status": "healthy"}
